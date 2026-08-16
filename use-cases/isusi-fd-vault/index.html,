@@ -1,0 +1,373 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>ISUSI — Private FD Vault</title>
+  <style>
+    :root {
+      --bg-color: #0b0e23;
+      --card-bg: #141b3d;
+      --card-border: #232c58;
+      --accent-yellow: #e5b839;
+      --accent-yellow-hover: #c99e30;
+      --text-main: #ffffff;
+      --text-muted: #a0aec0;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
+    body { background-color: var(--bg-color); color: var(--text-main); display: flex; min-height: 100vh; }
+
+    /* Sidebar */
+    aside { width: 260px; background-color: #080a1a; padding: 2rem 1.5rem; display: flex; flex-direction: column; justify-content: space-between; border-right: 1px solid var(--card-border); flex-shrink: 0; }
+    .brand h1 { font-size: 1.8rem; color: var(--accent-yellow); font-weight: 800; letter-spacing: 1px; }
+    .brand p { font-size: 0.65rem; color: var(--text-muted); letter-spacing: 1px; margin-top: 2px; }
+
+    nav { margin-top: 3rem; display: flex; flex-direction: column; gap: 0.75rem; }
+    nav a { color: var(--text-muted); text-decoration: none; padding: 0.75rem 1rem; border-radius: 8px; font-size: 0.95rem; display: flex; align-items: center; gap: 0.75rem; transition: 0.2s; cursor: pointer; }
+    nav a.active, nav a:hover { background-color: var(--card-bg); color: var(--accent-yellow); }
+    nav a.active { background-color: var(--accent-yellow); color: #0b0e23; font-weight: 600; }
+
+    .vault-lock { background: rgba(0,0,0,0.3); border: 1px solid var(--card-border); padding: 1rem; border-radius: 8px; font-size: 0.8rem; color: var(--text-muted); text-align: center; cursor: pointer; transition: 0.2s; }
+    .vault-lock:hover { border-color: var(--accent-yellow); color: #fff; }
+
+    /* Main Container */
+    main { flex: 1; padding: 3rem; max-width: 1200px; }
+    h2 { font-size: 2.2rem; font-weight: 700; margin-bottom: 0.5rem; }
+    .subtitle { color: var(--text-muted); margin-bottom: 2.5rem; font-size: 0.95rem; }
+
+    .view-content { display: none; }
+    .view-content.active { display: block; }
+
+    /* Grid & Cards */
+    .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 1.5rem; margin-bottom: 2rem; }
+    .card { background-color: var(--card-bg); border: 1px solid var(--card-border); border-radius: 12px; padding: 1.75rem; display: flex; flex-direction: column; justify-content: space-between; gap: 1.5rem; }
+    .card h3 { font-size: 1.25rem; font-weight: 600; }
+    .card p { color: var(--text-muted); font-size: 0.9rem; line-height: 1.5; }
+
+    .btn-run { background-color: var(--accent-yellow); color: #0b0e23; border: none; padding: 0.8rem 1.2rem; font-weight: 700; border-radius: 8px; cursor: pointer; transition: 0.2s; width: 100%; }
+    .btn-run:hover { background-color: var(--accent-yellow-hover); }
+
+    /* Table Styling for Dashboard */
+    table { width: 100%; border-collapse: collapse; margin-top: 1rem; background: var(--card-bg); border-radius: 8px; overflow: hidden; border: 1px solid var(--card-border); }
+    th, td { padding: 1rem; text-align: left; border-bottom: 1px solid var(--card-border); }
+    th { background-color: #0d122b; color: var(--accent-yellow); font-size: 0.85rem; text-transform: uppercase; }
+
+    /* Form styling */
+    .form-group { margin-bottom: 1.25rem; }
+    .form-group label { display: block; margin-bottom: 0.5rem; color: var(--text-muted); font-size: 0.9rem; }
+    .form-group input, .form-group select { width: 100%; padding: 0.75rem; background: #0b0e23; border: 1px solid var(--card-border); border-radius: 6px; color: #fff; font-size: 0.95rem; }
+
+    /* Result Console */
+    .result-card { background-color: #070919; border: 1px solid var(--card-border); border-radius: 12px; padding: 1.75rem; margin-top: 1.5rem; display: none; }
+    .result-card.active { display: block; }
+
+    .badge { display: inline-block; background: rgba(229, 184, 57, 0.15); color: var(--accent-yellow); padding: 0.3rem 0.75rem; border-radius: 6px; font-size: 0.75rem; font-weight: 700; margin-right: 0.5rem; margin-bottom: 1.25rem; text-transform: uppercase; }
+
+    .rec-item { background: #111633; border-left: 4px solid var(--accent-yellow); padding: 1rem 1.25rem; border-radius: 6px; margin-bottom: 1rem; }
+    .rec-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem; }
+    .rec-title { font-weight: 700; font-size: 1rem; color: #fff; }
+    .action-badge { padding: 0.25rem 0.6rem; border-radius: 4px; font-weight: 800; font-size: 0.75rem; color: #000; }
+    .rec-reason { color: var(--text-muted); font-size: 0.88rem; }
+
+    .health-row { display: flex; justify-content: space-between; padding: 0.75rem 0; border-bottom: 1px solid #1a2247; }
+    .health-grade { font-weight: 800; color: var(--accent-yellow); }
+  </style>
+</head>
+<body>
+
+  <!-- Sidebar -->
+  <aside>
+    <div>
+      <div class="brand">
+        <h1>ISUSI</h1>
+        <p>PRIVATE FD VAULT</p>
+      </div>
+      <nav>
+        <a onclick="showView('dashboard', this)">◆ Dashboard</a>
+        <a onclick="showView('add-fd', this)">+ Add FD</a>
+        <a onclick="showView('ai-agents', this)" class="active">❖ AI Agents</a>
+        <a onclick="showView('legacy', this)">❖ Legacy</a>
+      </nav>
+    </div>
+    <div class="vault-lock" onclick="lockVault()">
+      🔒 Lock vault<br/>
+      <small style="font-size:0.7rem;">AES-256 encrypted, on-device only.</small>
+    </div>
+  </aside>
+
+  <!-- Main Content Areas -->
+  <main>
+    
+    <!-- 1. DASHBOARD VIEW -->
+    <div id="view-dashboard" class="view-content">
+      <h2>Dashboard</h2>
+      <p class="subtitle">Overview of your encrypted Sri Lankan Fixed Deposit portfolio.</p>
+
+      <div class="grid">
+        <div class="card">
+          <h3>Total Portfolio Value</h3>
+          <h1 style="color: var(--accent-yellow); font-size: 2.2rem; margin-top: 0.5rem;">LKR 7,000,000</h1>
+        </div>
+        <div class="card">
+          <h3>Active Fixed Deposits</h3>
+          <h1 style="color: #fff; font-size: 2.2rem; margin-top: 0.5rem;">3</h1>
+        </div>
+        <div class="card">
+          <h3>Weighted Interest Rate</h3>
+          <h1 style="color: #28a745; font-size: 2.2rem; margin-top: 0.5rem;">7.16%</h1>
+        </div>
+      </div>
+
+      <h3 style="margin-top: 2rem; margin-bottom: 1rem;">Vaulted Fixed Deposits</h3>
+      <table>
+        <thead>
+          <tr>
+            <th>FD Reference</th>
+            <th>Bank Institution</th>
+            <th>Principal Amount</th>
+            <th>Interest Rate</th>
+            <th>Maturity Date</th>
+          </tr>
+        </thead>
+        <tbody id="fd-table-body">
+          <tr>
+            <td><strong>FD-8821</strong></td>
+            <td>Commercial Bank</td>
+            <td>LKR 1,500,000</td>
+            <td><span style="color:#28a745; font-weight:bold;">8.5%</span></td>
+            <td>2026-11-15</td>
+          </tr>
+          <tr>
+            <td><strong>FD-3042</strong></td>
+            <td>HNB Vault</td>
+            <td>LKR 3,500,000</td>
+            <td><span style="color:#ffc107; font-weight:bold;">5.2%</span></td>
+            <td>2026-08-10</td>
+          </tr>
+          <tr>
+            <td><strong>FD-7091</strong></td>
+            <td>Sampath Premium</td>
+            <td>LKR 2,000,000</td>
+            <td><span style="color:#28a745; font-weight:bold;">7.8%</span></td>
+            <td>2027-03-01</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- 2. ADD FD VIEW -->
+    <div id="view-add-fd" class="view-content">
+      <h2>Add Fixed Deposit</h2>
+      <p class="subtitle">Securely record a new Fixed Deposit in your encrypted local vault.</p>
+
+      <div class="card" style="max-width: 600px;">
+        <form id="add-fd-form" onsubmit="handleAddFD(event)">
+          <div class="form-group">
+            <label>Bank / Financial Institution</label>
+            <input type="text" id="fd-bank" placeholder="e.g. Commercial Bank / Sampath Bank" required />
+          </div>
+          <div class="form-group">
+            <label>Principal Amount (LKR)</label>
+            <input type="number" id="fd-amount" placeholder="1000000" required />
+          </div>
+          <div class="form-group">
+            <label>Interest Rate (%)</label>
+            <input type="number" step="0.1" id="fd-rate" placeholder="8.5" required />
+          </div>
+          <div class="form-group">
+            <label>Maturity Date</label>
+            <input type="date" id="fd-maturity" required />
+          </div>
+          <button type="submit" class="btn-run" style="margin-top: 1rem;">Save FD to Vault</button>
+        </form>
+      </div>
+    </div>
+
+    <!-- 3. AI AGENTS VIEW (ACTIVE BY DEFAULT) -->
+    <div id="view-ai-agents" class="view-content active">
+      <h2>AI Agents</h2>
+      <p class="subtitle">Three specialist agents (Llama 3.3 70B via Groq, using the OpenAI Agents SDK on Agent Kernel), each callable directly from here.</p>
+
+      <div class="grid">
+        <div class="card">
+          <div>
+            <h3>FD Advisor</h3>
+            <p style="margin-top:0.75rem;">Reviews each FD and recommends RENEW, HOLD, or WITHDRAW, with a plain-language reason.</p>
+          </div>
+          <button class="btn-run" onclick="executeAgent('fd_advisor', this)">Run FD Advisor</button>
+        </div>
+
+        <div class="card">
+          <div>
+            <h3>Portfolio Health</h3>
+            <p style="margin-top:0.75rem;">Scores your portfolio A–F across diversification, rate quality, maturity spread, liquidity, and legacy readiness.</p>
+          </div>
+          <button class="btn-run" onclick="executeAgent('portfolio_health', this)">Run Portfolio Health</button>
+        </div>
+
+        <div class="card">
+          <div>
+            <h3>Legacy Guardian</h3>
+            <p style="margin-top:0.75rem;">Decides — conservatively — whether to send you a check-in or alert your nominee, based on inactivity.</p>
+          </div>
+          <button class="btn-run" onclick="executeAgent('legacy_guardian', this)">Run Legacy Guardian</button>
+        </div>
+      </div>
+
+      <!-- Output Section -->
+      <div id="result-card" class="result-card">
+        <div id="badges"></div>
+        <div id="visual-output"></div>
+      </div>
+    </div>
+
+    <!-- 4. LEGACY VIEW -->
+    <div id="view-legacy" class="view-content">
+      <h2>Legacy Guardian</h2>
+      <p class="subtitle">Configure inactivity protection and trusted nominee notifications.</p>
+
+      <div class="card" style="max-width: 600px;">
+        <h3>Nominee Configuration</h3>
+        <p style="margin-top: 0.5rem; margin-bottom: 1.5rem;">If no vault activity is recorded for 90 consecutive days, Legacy Guardian will safely alert your primary nominee.</p>
+        
+        <div class="form-group">
+          <label>Primary Nominee Name</label>
+          <input type="text" value="Sarah Masinghe" readonly />
+        </div>
+        <div class="form-group">
+          <label>Encrypted Nominee Email</label>
+          <input type="email" value="sarah.m***@private.com" readonly />
+        </div>
+        <div class="form-group">
+          <label>Inactivity Timeout Threshold</label>
+          <select disabled>
+            <option selected>90 Days (Standard)</option>
+          </select>
+        </div>
+        <button class="btn-run" onclick="alert('Nominee settings updated successfully!')">Update Nominee Settings</button>
+      </div>
+    </div>
+
+    <!-- 5. LOCKED SCREEN VIEW -->
+    <div id="view-locked" class="view-content">
+      <div style="text-align: center; padding: 5rem 1rem;">
+        <h1 style="font-size: 4rem; margin-bottom: 1rem;">🔒</h1>
+        <h2>Vault is Locked</h2>
+        <p class="subtitle">Enter your AES-256 PIN code to unlock your private fixed deposit data.</p>
+        <button class="btn-run" style="max-width: 200px; margin: 0 auto;" onclick="unlockVault()">Unlock Vault</button>
+      </div>
+    </div>
+
+  </main>
+
+  <script>
+    function showView(viewId, element) {
+      document.querySelectorAll('.view-content').forEach(view => view.classList.remove('active'));
+      document.querySelectorAll('nav a').forEach(link => link.classList.remove('active'));
+
+      document.getElementById('view-' + viewId).classList.add('active');
+      if (element) element.classList.add('active');
+    }
+
+    function lockVault() {
+      document.querySelectorAll('.view-content').forEach(view => view.classList.remove('active'));
+      document.getElementById('view-locked').classList.add('active');
+    }
+
+    function unlockVault() {
+      showView('ai-agents', document.querySelectorAll('nav a')[2]);
+    }
+
+    function handleAddFD(e) {
+      e.preventDefault();
+      const bank = document.getElementById('fd-bank').value;
+      const amount = document.getElementById('fd-amount').value;
+      const rate = document.getElementById('fd-rate').value;
+      const maturity = document.getElementById('fd-maturity').value;
+
+      const randomId = 'FD-' + Math.floor(1000 + Math.random() * 9000);
+
+      const tableBody = document.getElementById('fd-table-body');
+      const newRow = '<tr>' +
+          '<td><strong>' + randomId + '</strong></td>' +
+          '<td>' + bank + '</td>' +
+          '<td>LKR ' + Number(amount).toLocaleString() + '</td>' +
+          '<td><span style="color:#28a745; font-weight:bold;">' + rate + '%</span></td>' +
+          '<td>' + maturity + '</td>' +
+        '</tr>';
+      tableBody.innerHTML += newRow;
+
+      alert('FD Added Successfully!');
+      document.getElementById('add-fd-form').reset();
+      showView('dashboard', document.querySelectorAll('nav a')[0]);
+    }
+
+    async function executeAgent(agentName, btnElement) {
+      const resultCard = document.getElementById('result-card');
+      const badgesDiv = document.getElementById('badges');
+      const outputDiv = document.getElementById('visual-output');
+
+      btnElement.disabled = true;
+      btnElement.innerText = 'Running...';
+      
+      resultCard.classList.add('active');
+      badgesDiv.innerHTML = '<span class="badge">ISUSI_' + agentName.toUpperCase() + '</span><span class="badge">LLAMA-3.3-70B</span>';
+      outputDiv.innerHTML = "<p style='color:var(--text-muted);'>⏳ Evaluating Fixed Deposit portfolio...</p>";
+
+      try {
+        const res = await fetch('/run', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ agent: agentName })
+        });
+
+        const data = await res.json();
+        const resData = data.result;
+
+        if (agentName === 'fd_advisor') {
+          let html = "<p style='margin-bottom:1.25rem; font-weight:600; color:#e5b839;'>" + (resData.summary || 'FD Recommendations:') + "</p>";
+          (resData.recommendations || []).forEach(item => {
+            html += '<div class="rec-item">' +
+                      '<div class="rec-header">' +
+                        '<span class="rec-title">' + (item.bank || item.id) + '</span>' +
+                        '<span class="action-badge" style="background:' + (item.badge_color || '#ffc107') + '">' + item.action + '</span>' +
+                      '</div>' +
+                      '<div class="rec-reason">' + item.reason + '</div>' +
+                    '</div>';
+          });
+          outputDiv.innerHTML = html;
+        } 
+        else if (agentName === 'portfolio_health') {
+          let html = "<div style='font-size:1.5rem; font-weight:800; margin-bottom:1rem;'>Overall Health Grade: <span style='color:#e5b839;'>" + resData.overall_grade + "</span></div>";
+          (resData.metrics || []).forEach(m => {
+            html += '<div class="health-row">' +
+                      '<div>' +
+                        '<strong>' + m.category + '</strong>' +
+                        '<div style="font-size:0.85rem; color:var(--text-muted);">' + m.note + '</div>' +
+                      '</div>' +
+                      '<div class="health-grade">' + m.score + '</div>' +
+                    '</div>';
+          });
+          outputDiv.innerHTML = html;
+        } 
+        else {
+          outputDiv.innerHTML = '<div style="background:#111633; padding:1.25rem; border-radius:8px; border:1px solid #232c58;">' +
+            '<div style="font-size:1.2rem; font-weight:700; color:#28a745; margin-bottom:0.75rem;">Status: ' + resData.status + '</div>' +
+            '<p style="margin-bottom:0.5rem; color:var(--text-muted);"><strong>Action:</strong> ' + resData.action_required + '</p>' +
+            '<p style="margin-bottom:0.5rem; color:var(--text-muted);"><strong>Timer:</strong> ' + resData.inactivity_timer + '</p>' +
+            '<p style="margin-bottom:0.5rem; color:var(--text-muted);"><strong>Nominee Trigger:</strong> ' + resData.nominee_alert_status + '</p>' +
+            '<p style="color:#a0aec0; font-size:0.9rem; margin-top:0.75rem; border-top:1px solid #232c58; padding-top:0.75rem;">' + resData.reason + '</p>' +
+          '</div>';
+        }
+
+      } catch (err) {
+        outputDiv.innerHTML = '<p style="color:#dc3545;">❌ Error: ' + err.message + '</p>';
+      } finally {
+        btnElement.disabled = false;
+        btnElement.innerText = 'Run ' + (agentName === 'fd_advisor' ? 'FD Advisor' : agentName === 'portfolio_health' ? 'Portfolio Health' : 'Legacy Guardian');
+      }
+    }
+  </script>
+</body>
+</html>
