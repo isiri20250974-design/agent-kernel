@@ -1,4 +1,4 @@
-<img width="1511" height="558" alt="image" src="https://github.com/user-attachments/assets/3a924f34-50cc-40d9-85af-4bd67e6d97c2" /># Developer Guide
+# Developer Guide
 
 This guide provides essential information for developers working on the Agent Kernel project.
 
